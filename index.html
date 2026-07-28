@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>Meine Songliste</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 0 20px; }
+    .song { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; border-radius: 6px; }
+    .song-title { font-weight: bold; }
+    .song-meta { color: #666; font-size: 0.9em; }
+    form { margin-top: 30px; display: flex; flex-direction: column; gap: 8px; max-width: 300px; }
+  </style>
+</head>
+<body>
+  <h1>Meine Songliste</h1>
+
+  <!-- Hier landen die Songs, sobald JS sie von der API geholt hat -->
+  <div id="song-list">Lade Songs...</div>
+
+  <h2>Neuen Song hinzufügen</h2>
+  <form id="song-form">
+    <input id="title" type="text" placeholder="Titel" required />
+    <input id="artist" type="text" placeholder="Künstler" required />
+    <input id="tuning" type="text" placeholder="Stimmung (z.B. Drop D)" />
+    <input id="strings" type="text" placeholder="Saiten (z.B. 6 Saiter)" />
+    <button type="submit">Hinzufügen</button>
+  </form>
+
+  <script>
+    const listEl = document.getElementById('song-list');
+    const formEl = document.getElementById('song-form');
+
+    // Songs von unserer eigenen API-Route holen (die, die mit Supabase spricht)
+    async function loadSongs() {
+      const response = await fetch('/api/songs');
+      const data = await response.json();
+
+      if (!data.songs || data.songs.length === 0) {
+        listEl.innerHTML = 'Noch keine Songs.';
+        return;
+      }
+
+      // Genau das .map()-Muster von heute Morgen: Array aus Objekten -> Array aus HTML-Strings
+      listEl.innerHTML = data.songs.map(song => `
+        <div class="song">
+          <div class="song-title">${song.title}</div>
+          <div class="song-meta">${song.artist} - ${song.tuning || ''} ${song.strings || ''}</div>
+        </div>
+      `).join('');
+    }
+
+    // Neuen Song per Formular hinzufügen
+    formEl.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      await fetch('/api/songs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: document.getElementById('title').value,
+          artist: document.getElementById('artist').value,
+          tuning: document.getElementById('tuning').value,
+          strings: document.getElementById('strings').value,
+        })
+      });
+
+      formEl.reset();
+      loadSongs(); // Liste neu laden, damit der neue Song sofort sichtbar ist
+    });
+
+    loadSongs();
+  </script>
+</body>
+</html>
